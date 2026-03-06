@@ -31,6 +31,9 @@ class GoogleTrendsSource(DataSource):
 
     def fetch(self) -> dict:
         data = _fetch_trends(settings.SEARCH_TERM)
+        data["comparison"] = _fetch_comparison(
+            settings.SEARCH_TERM, tuple(settings.COMPETITORS)
+        )
         return data
 
 
@@ -74,3 +77,24 @@ def _fetch_trends(keyword: str) -> dict:
         "kpi": {"label": "Trend Score", "value": latest, "delta": delta},
         "related_queries": rq,
     }
+
+
+@cached(ttl_seconds=settings.CACHE_TTL_GOOGLE_TRENDS)
+def _fetch_comparison(keyword: str, competitors: tuple) -> pd.DataFrame:
+    """Fetch interest over time for keyword vs competitors on the same scale."""
+    all_terms = [keyword] + list(competitors)
+    # pytrends allows max 5 terms per request
+    all_terms = all_terms[:5]
+    try:
+        pytrends = TrendReq(hl="en-US", tz=360, retries=3, backoff_factor=2,
+                            requests_args={"verify": True})
+        pytrends.build_payload(all_terms, cat=0, timeframe="today 3-m")
+        df = pytrends.interest_over_time()
+        if df.empty:
+            return pd.DataFrame()
+        df = df.reset_index()
+        if "isPartial" in df.columns:
+            df = df.drop(columns=["isPartial"])
+        return df
+    except Exception:
+        return pd.DataFrame()

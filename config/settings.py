@@ -20,6 +20,10 @@ def _get_secret(key: str, default: str = "") -> str:
 class Settings:
     SEARCH_TERM = "base44"
     SEARCH_TERM_DISPLAY = "Base44"
+    COMPETITORS = ["lovable", "bolt.new", "replit", "bubble"]
+
+    # Cache TTLs
+    CACHE_TTL_SOCIAL = 2 * 3600  # 2 hours
 
     # App store identifiers
     GOOGLE_PLAY_APP_ID: str = os.getenv("GOOGLE_PLAY_APP_ID", "com.base44.android")

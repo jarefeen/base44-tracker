@@ -12,8 +12,9 @@ from config import settings
 from data_sources.google_trends import GoogleTrendsSource
 from data_sources.app_stores import AppStoresSource
 from data_sources.youtube import YouTubeSource
+from data_sources.social import SocialMentionsSource
 from components.kpi_card import render_kpi_card
-from components.trend_chart import render_line_chart, render_bar_chart
+from components.trend_chart import render_line_chart, render_bar_chart, render_multi_line_chart
 from components.status_banner import render_status_banner
 from utils.caching import clear_all_cache
 from utils.history import record_snapshot, get_history
@@ -29,6 +30,7 @@ sources = {
     "google_trends": GoogleTrendsSource(),
     "youtube": YouTubeSource(),
     "app_stores": AppStoresSource(),
+    "social": SocialMentionsSource(),
 }
 
 # --- Sidebar ---
@@ -94,6 +96,14 @@ if r_as and r_as.get("ok") and not r_as["df"].empty:
     if snapshot:
         record_snapshot("app_stores", snapshot)
 
+r_social = results.get("social")
+if r_social and r_social.get("ok"):
+    record_snapshot("social", {
+        "reddit_count": r_social.get("reddit_count", 0),
+        "hn_count": r_social.get("hn_count", 0),
+        "total": r_social.get("reddit_count", 0) + r_social.get("hn_count", 0),
+    })
+
 # --- Header ---
 st.title(f"{settings.SEARCH_TERM_DISPLAY} Traction Tracker")
 
@@ -110,8 +120,8 @@ render_status_banner(status_list)
 st.divider()
 
 # --- KPI Row ---
-kpi_cols = st.columns(3)
-kpi_order = ["google_trends", "youtube", "app_stores"]
+kpi_cols = st.columns(4)
+kpi_order = ["google_trends", "youtube", "app_stores", "social"]
 for col, key in zip(kpi_cols, kpi_order):
     r = results.get(key)
     with col:
@@ -126,7 +136,7 @@ for col, key in zip(kpi_cols, kpi_order):
 st.divider()
 
 # --- Tabs ---
-tab_names = ["Google Trends", "YouTube", "App Stores"]
+tab_names = ["Google Trends", "YouTube", "App Stores", "Social Mentions"]
 tabs = st.tabs(tab_names)
 
 # -- Google Trends tab --
@@ -142,6 +152,17 @@ with tabs[0]:
                 "spikes (launches/press coverage), or steady declines (losing mindshare)."
             )
             render_line_chart(df, x="date", y=settings.SEARCH_TERM, title="Interest Over Time (past 3 months)")
+
+            # Competitor comparison
+            comp_df = r.get("comparison")
+            if comp_df is not None and not comp_df.empty:
+                st.subheader("vs Competitors")
+                y_cols = [c for c in comp_df.columns if c != "date"]
+                render_multi_line_chart(
+                    comp_df, x="date", y_columns=y_cols,
+                    title="Search Interest: Base44 vs Competitors (past 3 months)",
+                    highlight=settings.SEARCH_TERM,
+                )
 
             related = r.get("related_queries")
             if related is not None and not related.empty:
@@ -197,7 +218,7 @@ with tabs[1]:
             st.info("YouTube is disabled. Enable it in the sidebar.")
 
 # -- App Stores tab --
-with tabs[2]:
+with tabs[3]:
     r = results.get("app_stores")
     if r and r["ok"]:
         df = r["df"]
@@ -242,6 +263,43 @@ with tabs[2]:
         st.error(f"Error fetching app store data: {r.get('error')}")
     else:
         st.info("App Stores source is disabled. Enable it in the sidebar.")
+
+# -- Social Mentions tab --
+with tabs[2]:
+    r = results.get("social")
+    if r and r["ok"]:
+        df = r["df"]
+        if not df.empty:
+            col1, col2 = st.columns(2)
+            with col1:
+                reddit_df = df[df["source"] == "Reddit"]
+                st.subheader(f"Reddit ({len(reddit_df)} posts)")
+                if not reddit_df.empty:
+                    st.dataframe(
+                        reddit_df[["title", "subreddit", "score", "comments", "date"]],
+                        use_container_width=True, hide_index=True,
+                    )
+            with col2:
+                hn_df = df[df["source"] == "Hacker News"]
+                st.subheader(f"Hacker News ({len(hn_df)} posts)")
+                if not hn_df.empty:
+                    st.dataframe(
+                        hn_df[["title", "score", "comments", "date"]],
+                        use_container_width=True, hide_index=True,
+                    )
+
+            # Mentions over time (by day)
+            if "date" in df.columns:
+                by_day = df.groupby(["date", "source"]).size().reset_index(name="count")
+                if len(by_day) > 1:
+                    st.subheader("Mentions Over Time")
+                    render_bar_chart(by_day, x="date", y="count", title="Social Mentions by Day")
+        else:
+            st.info(f"No social mentions found for '{settings.SEARCH_TERM}'.")
+    elif r:
+        st.error(f"Error fetching social mentions: {r.get('error')}")
+    else:
+        st.info("Social Mentions is disabled. Enable it in the sidebar.")
 
 # --- Footer ---
 st.divider()
