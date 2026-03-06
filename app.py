@@ -218,7 +218,7 @@ with tabs[1]:
             st.info("YouTube is disabled. Enable it in the sidebar.")
 
 # -- App Stores tab --
-with tabs[3]:
+with tabs[2]:
     r = results.get("app_stores")
     if r and r["ok"]:
         df = r["df"]
@@ -265,7 +265,7 @@ with tabs[3]:
         st.info("App Stores source is disabled. Enable it in the sidebar.")
 
 # -- Social Mentions tab --
-with tabs[2]:
+with tabs[3]:
     r = results.get("social")
     if r and r["ok"]:
         df = r["df"]
