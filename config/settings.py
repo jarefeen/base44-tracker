@@ -13,9 +13,9 @@ class Settings:
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
 
     # App store identifiers
-    GOOGLE_PLAY_APP_ID: str = os.getenv("GOOGLE_PLAY_APP_ID", "")
-    APP_STORE_APP_NAME: str = os.getenv("APP_STORE_APP_NAME", "base44")
-    APP_STORE_APP_ID: str = os.getenv("APP_STORE_APP_ID", "")
+    GOOGLE_PLAY_APP_ID: str = os.getenv("GOOGLE_PLAY_APP_ID", "com.base44.android")
+    APP_STORE_APP_NAME: str = os.getenv("APP_STORE_APP_NAME", "base44-vibecode-anything")
+    APP_STORE_APP_ID: str = os.getenv("APP_STORE_APP_ID", "6749351042")
 
     # Cache TTLs in seconds
     CACHE_TTL_GOOGLE_TRENDS = 4 * 3600  # 4 hours
