@@ -5,12 +5,24 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
+def _get_secret(key: str, default: str = "") -> str:
+    """Read from env vars first, then Streamlit secrets as fallback."""
+    val = os.getenv(key, "")
+    if val:
+        return val
+    try:
+        import streamlit as st
+        return st.secrets.get(key, default)
+    except Exception:
+        return default
+
+
 class Settings:
     SEARCH_TERM = "base44"
     SEARCH_TERM_DISPLAY = "Base44"
 
     # API keys
-    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    YOUTUBE_API_KEY: str = _get_secret("YOUTUBE_API_KEY")
 
     # App store identifiers
     GOOGLE_PLAY_APP_ID: str = os.getenv("GOOGLE_PLAY_APP_ID", "com.base44.android")
