@@ -110,6 +110,12 @@ with tabs[0]:
     if r and r["ok"]:
         df = r["df"]
         if not df.empty:
+            st.caption(
+                "**How to read this:** The score is relative search interest on a 0-100 scale. "
+                "100 = peak popularity in the time period, 50 = half the peak. "
+                "It's not absolute search volume. Watch for upward trends (growing awareness), "
+                "spikes (launches/press coverage), or steady declines (losing mindshare)."
+            )
             render_line_chart(df, x="date", y=settings.SEARCH_TERM, title="Interest Over Time (past 3 months)")
 
             related = r.get("related_queries")
