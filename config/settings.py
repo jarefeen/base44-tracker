@@ -21,9 +21,6 @@ class Settings:
     SEARCH_TERM = "base44"
     SEARCH_TERM_DISPLAY = "Base44"
 
-    # API keys
-    YOUTUBE_API_KEY: str = _get_secret("YOUTUBE_API_KEY")
-
     # App store identifiers
     GOOGLE_PLAY_APP_ID: str = os.getenv("GOOGLE_PLAY_APP_ID", "com.base44.android")
     APP_STORE_APP_NAME: str = os.getenv("APP_STORE_APP_NAME", "base44-vibecode-anything")
@@ -36,6 +33,10 @@ class Settings:
 
     # Cache directory
     CACHE_DIR = str(Path(__file__).resolve().parent.parent / "cache")
+
+    @property
+    def YOUTUBE_API_KEY(self) -> str:
+        return _get_secret("YOUTUBE_API_KEY")
 
     def is_source_available(self, source: str) -> bool:
         checks = {
