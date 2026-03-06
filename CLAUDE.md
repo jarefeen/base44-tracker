@@ -1,42 +1,31 @@
 # Base44 Traction Tracker
 
-## Project Overview
-Streamlit dashboard tracking Base44 traction metrics across 3 data sources: Google Trends, YouTube, and App Stores.
-
-## Project Location
-- Files are written to `C:\Users\jarefeen\base44-tracker` but the runtime/venv lives on `H:\base44-tracker`
-- After editing files, sync to H: before restarting: `cp "C:\\Users\\jarefeen\\base44-tracker/<file>" /h/base44-tracker/<file>`
-- Always kill ALL old streamlit processes before restarting: `taskkill //F //IM streamlit.exe`
+## Project Location (critical)
+- Write tool saves to `C:\Users\jarefeen\base44-tracker`, but venv/runtime is on `H:\base44-tracker`
+- **Always sync edited files to H: before restarting**: `cp "C:\\Users\\jarefeen\\base44-tracker/<file>" /h/base44-tracker/<file>`
+- **Always kill ALL old streamlit processes**: `taskkill //F //IM streamlit.exe` (multiple can accumulate)
 
 ## Running
 ```bash
 cd /h/base44-tracker && /h/base44-tracker/.venv/Scripts/streamlit.exe run app.py --server.headless true
 ```
-Dashboard at http://localhost:8501
 
-## Key Architecture
-- **Data sources** (`data_sources/`): Each implements `DataSource` base class with `fetch_safe()` error boundary
-- **Two-level caching**: `st.cache_data` (in-memory) + `diskcache` (persistent in `cache/` dir)
-- **Graceful degradation**: Unconfigured sources show info messages, not errors
-- All sources optional — Google Trends + App Stores need no API keys
+## Key Gotchas
+- `truststore` must be injected at startup for corporate proxy SSL
+- `urllib3<2` pinned — `pytrends` uses removed `method_whitelist` kwarg in urllib3 2.x
+- `app-store-scraper` pip package is broken — use iTunes Lookup API (`itunes.apple.com/lookup`) instead
+- `YOUTUBE_API_KEY` must be a `@property` in Settings (lazy read) so Streamlit Cloud secrets work
+- `.env` is gitignored — app store IDs are hardcoded as defaults in `settings.py` for Streamlit Cloud
+- Google Trends competitor terms must be specific (e.g., `bubble.io` not `bubble`, `lovable.dev` not `lovable`) to avoid common-word noise
+- `pytrends` rate limits aggressively — 4h cache TTL mitigates this
 
-## Environment
-- `.env` holds API keys (gitignored). `.env.example` has the template.
-- `truststore` is injected at startup for corporate proxy SSL compatibility
-- `urllib3<2` is pinned because `pytrends` uses deprecated `method_whitelist` kwarg
+## Architecture
+- Data sources in `data_sources/` each implement `DataSource` base class with `fetch_safe()` error boundary
+- Two-level caching: `st.cache_data` (in-memory) + `diskcache` (persistent)
+- Historical tracking: `utils/history.py` saves daily snapshots to `cache/history.json`
+- GitHub Actions (`daily-snapshot.yml`) runs `snapshot.py` at 8AM UTC to record data without anyone visiting
 
-## App Store IDs
-- Google Play: `com.base44.android`
-- App Store: ID `6749351042` (via iTunes Lookup API — `app-store-scraper` library is broken)
-
-## Data Sources
-| Source | API Key | Cache TTL | Module |
-|--------|---------|-----------|--------|
-| Google Trends | None | 4h | `data_sources/google_trends.py` |
-| YouTube | `YOUTUBE_API_KEY` | 1h | `data_sources/youtube.py` |
-| App Stores | None | 2h | `data_sources/app_stores.py` |
-
-## Known Issues
-- `pytrends` rate limits aggressively (429 errors) — 4h cache TTL mitigates this
-- `app-store-scraper` pip package is broken; App Store data uses iTunes Lookup API directly instead
-- Website traffic source was removed (all free APIs are paid or unreliable)
+## Deployment
+- GitHub repo: `jarefeen/base44-tracker`
+- Streamlit Cloud auto-deploys on push to master
+- YouTube API key must be added in Streamlit Cloud Settings > Secrets
