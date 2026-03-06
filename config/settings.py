@@ -20,7 +20,7 @@ def _get_secret(key: str, default: str = "") -> str:
 class Settings:
     SEARCH_TERM = "base44"
     SEARCH_TERM_DISPLAY = "Base44"
-    COMPETITORS = ["lovable", "bolt.new", "replit", "bubble"]
+    COMPETITORS = ["lovable", "bolt.new", "replit", "bubble.io"]
 
     # Cache TTLs
     CACHE_TTL_SOCIAL = 2 * 3600  # 2 hours
